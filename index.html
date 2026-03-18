@@ -423,9 +423,113 @@
     #sidebar { display: none; }
     .suggestion-grid { grid-template-columns: 1fr; }
   }
+
+  /* ── API Key Modal ── */
+  #api-modal {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+  }
+  #api-modal.hidden { display: none; }
+  .modal-box {
+    background: #1e1e1e;
+    border: 1px solid #3d3d3d;
+    border-radius: 18px;
+    padding: 36px;
+    width: 100%;
+    max-width: 430px;
+    display: flex; flex-direction: column; gap: 18px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+    animation: modalIn 0.25s ease;
+  }
+  @keyframes modalIn {
+    from { opacity:0; transform:scale(0.95) translateY(12px); }
+    to   { opacity:1; transform:scale(1) translateY(0); }
+  }
+  .modal-logo {
+    width: 46px; height: 46px;
+    background: #fff; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 800; color: #000;
+  }
+  .modal-title { font-size: 22px; font-weight: 600; }
+  .modal-desc { font-size: 14px; color: #8e8ea0; line-height: 1.65; }
+  .modal-label { font-size: 13px; color: #8e8ea0; margin-bottom: 6px; font-weight: 500; }
+  .modal-input-wrap { position: relative; }
+  #api-key-input {
+    width: 100%;
+    background: #2f2f2f;
+    border: 1px solid #3d3d3d;
+    border-radius: 10px;
+    padding: 13px 44px 13px 14px;
+    color: #ececec;
+    font-family: ui-monospace, monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+    letter-spacing: 0.02em;
+  }
+  #api-key-input:focus { border-color: rgba(255,255,255,0.3); }
+  #api-key-input::placeholder { color: #565869; font-family: ui-sans-serif,system-ui,sans-serif; letter-spacing:0; }
+  .toggle-key-btn {
+    position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer;
+    color: #565869; padding: 4px; transition: color 0.15s;
+  }
+  .toggle-key-btn:hover { color: #8e8ea0; }
+  .modal-error { font-size: 13px; color: #f87171; display: none; }
+  .modal-error.visible { display: block; }
+  #save-key-btn {
+    padding: 13px;
+    background: #ececec; color: #212121;
+    border: none; border-radius: 10px;
+    font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: background 0.15s;
+  }
+  #save-key-btn:hover { background: #fff; }
+  .modal-hint { font-size: 12px; color: #565869; text-align: center; }
+  .modal-hint a { color: #8e8ea0; }
+  .key-indicator {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; color: #8e8ea0;
+    padding: 5px 11px; border-radius: 8px;
+    border: 1px solid #3d3d3d; cursor: pointer;
+    background: transparent; transition: background 0.15s;
+  }
+  .key-indicator:hover { background: rgba(255,255,255,0.06); }
+  .key-dot { width: 7px; height: 7px; border-radius: 50%; background: #19c37d; }
 </style>
 </head>
 <body>
+
+<!-- API Key Modal -->
+<div id="api-modal">
+  <div class="modal-box">
+    <div class="modal-logo">✦</div>
+    <div>
+      <div class="modal-title">Enter your API Key</div>
+    </div>
+    <div class="modal-desc">
+      Paste your Anthropic API key below to start chatting. Your key is stored only in your browser's memory and never sent anywhere except Anthropic's API.
+    </div>
+    <div>
+      <div class="modal-label">Anthropic API Key</div>
+      <div class="modal-input-wrap">
+        <input type="password" id="api-key-input" placeholder="sk-ant-api03-…" autocomplete="off" spellcheck="false" />
+        <button class="toggle-key-btn" onclick="toggleKeyVisibility()" title="Show/hide key">
+          <svg id="eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+      <div class="modal-error" id="modal-error">Invalid API key format. It should start with <code>sk-ant-</code></div>
+    </div>
+    <button id="save-key-btn" onclick="saveApiKey()">Start Chatting →</button>
+    <div class="modal-hint">
+      Don't have a key? <a href="https://console.anthropic.com" target="_blank">Get one at console.anthropic.com</a>
+    </div>
+  </div>
+</div>
 
 <!-- Sidebar -->
 <div id="sidebar">
@@ -463,7 +567,7 @@
       Claude Sonnet 4
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
     </button>
-    <div class="topbar-actions">
+    <div class="topbar-actions"><button id="key-indicator" class="key-indicator" style="display:none" onclick="changeApiKey()"><span class="key-dot"></span>API Key</button>
       <button class="icon-btn" title="Share">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
       </button>
@@ -530,6 +634,48 @@
 </div>
 
 <script>
+  // ── API Key Management ──
+  let _apiKey = '';
+
+  function getApiKey() { return _apiKey; }
+
+  function saveApiKey() {
+    const val = document.getElementById('api-key-input').value.trim();
+    const errEl = document.getElementById('modal-error');
+    if (!val.startsWith('sk-ant-')) {
+      errEl.classList.add('visible');
+      return;
+    }
+    errEl.classList.remove('visible');
+    _apiKey = val;
+    document.getElementById('api-modal').classList.add('hidden');
+    // Show key indicator in topbar
+    const ind = document.getElementById('key-indicator');
+    if (ind) ind.style.display = 'flex';
+  }
+
+  function toggleKeyVisibility() {
+    const inp = document.getElementById('api-key-input');
+    const icon = document.getElementById('eye-icon');
+    if (inp.type === 'password') {
+      inp.type = 'text';
+      icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
+    } else {
+      inp.type = 'password';
+      icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+    }
+  }
+
+  function changeApiKey() {
+    document.getElementById('api-key-input').value = _apiKey;
+    document.getElementById('api-modal').classList.remove('hidden');
+  }
+
+  // allow Enter key in modal
+  document.getElementById('api-key-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') saveApiKey();
+  });
+
   // ── State ──
   let messages = [];
   let isStreaming = false;
@@ -620,7 +766,7 @@
           'Content-Type': 'application/json',
           'anthropic-version': '2023-06-01',
           'anthropic-dangerous-direct-browser-access': 'true',
-          'x-api-key': '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'
+          'x-api-key': getApiKey()
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
